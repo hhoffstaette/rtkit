@@ -766,12 +766,6 @@ static int process_set_realtime(struct rtkit_user *u, struct process *p, struct 
                 goto finish;
         }
 
-        syslog(LOG_INFO, "Successfully made thread %llu of process %llu owned by '%s' RT at priority %u.\n",
-               (unsigned long long) t->pid,
-               (unsigned long long) p->pid,
-               get_user_name(u->uid, user, sizeof(user)),
-               priority);
-
         r = 0;
 
 finish:
@@ -829,12 +823,6 @@ static int process_set_high_priority(struct rtkit_user *u, struct process *p, st
                 goto finish;
         }
 
-        syslog(LOG_INFO, "Successfully made thread %llu of process %llu owned by '%s' high priority at nice level %i.\n",
-               (unsigned long long) t->pid,
-               (unsigned long long) p->pid,
-               get_user_name(u->uid, user, sizeof(user)),
-               priority);
-
         r = 0;
 
 finish:
@@ -858,9 +846,6 @@ static void reset_known(void) {
                                     verify_process_starttime(p) >= 0 &&
                                     verify_thread_starttime(p, t) >= 0)
                                         if (thread_reset(t->pid) >= 0) {
-                                                syslog(LOG_NOTICE, "Successfully demoted thread %llu of process %llu.\n",
-                                                       (unsigned long long) t->pid,
-                                                       (unsigned long long) p->pid);
                                                 n_demoted++;
                                         }
 
@@ -952,9 +937,6 @@ static int reset_all(void) {
                         if (r == SCHED_FIFO || r == SCHED_RR ||
                             r == (SCHED_FIFO|SCHED_RESET_ON_FORK) || r == (SCHED_RR|SCHED_RESET_ON_FORK))
                                 if (thread_reset((pid_t) tid) >= 0) {
-                                        syslog(LOG_NOTICE, "Successfully demoted thread %llu of process %llu.\n",
-                                               (unsigned long long) tid,
-                                               (unsigned long long) pid);
                                         n_demoted++;
                                 }
                 }
@@ -1431,19 +1413,6 @@ static DBusHandlerResult dbus_handler(DBusConnection *c, DBusMessage *m, void *u
                                           DBUS_TYPE_INVALID));
         } else
                 return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-
-        syslog(LOG_DEBUG, "Supervising %u threads of %u processes of %u users.\n",
-                n_total_threads,
-                n_total_processes,
-                n_users);
-
-#ifdef HAVE_LIBSYSTEMD
-        sd_notifyf(0,
-                   "STATUS=Supervising %u threads of %u processes of %u users.",
-                   n_total_threads,
-                   n_total_processes,
-                   n_users);
-#endif
 
 finish:
         if (r) {
